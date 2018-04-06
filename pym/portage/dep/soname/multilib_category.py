@@ -39,7 +39,9 @@ from portage.util.elf.constants import (
 	EM_IA_64, EM_MIPS,
 	EM_PARISC, EM_PPC, EM_PPC64, EM_S390, EM_SH, EM_SPARC,
 	EM_SPARC32PLUS, EM_SPARCV9, EM_X86_64, E_MIPS_ABI_EABI32,
-	E_MIPS_ABI_EABI64, E_MIPS_ABI_O32, E_MIPS_ABI_O64)
+	E_MIPS_ABI_EABI64, E_MIPS_ABI_O32, E_MIPS_ABI_O64, EM_MIPS,
+    EF_RISCV_FLOAT_ABI, EF_RISCV_FLOAT_ABI_SOFT, EF_RISCV_FLOAT_ABI_SINGLE,
+    EF_RISCV_FLOAT_ABI_DOUBLE, EF_RISCV_FLOAT_ABI_QUAD)
 
 _machine_prefix_map = {
 	EM_386:             "x86",
@@ -54,6 +56,7 @@ _machine_prefix_map = {
 	EM_PPC:             "ppc",
 	EM_PPC64:           "ppc",
 	EM_S390:            "s390",
+	EM_RISCV:           "riscv",
 	EM_SH:              "sh",
 	EM_SPARC:           "sparc",
 	EM_SPARC32PLUS:     "sparc",
@@ -82,6 +85,27 @@ def _compute_suffix_mips(elf_header):
 
 	return name
 
+def _compute_suffix_riscv(elf_header):
+    riscv_abi = elf_header.e_flags & EF_RISCV_FLOAT_ABI
+
+    int_abi = None
+    if elf_header.ei_class == ELFCLASS32:
+        int_abi = "ilp32"
+    elif elf_header.ei_class == ELFCLASS64:
+        int_abi = "lp64"
+
+    float_abi = None
+    if riscv_abi == EF_RISCV_FLOAT_ABI_SOFT:
+        float_abi = ""
+    elif riscv_abi == EF_RISCV_FLOAT_ABI_SINGLE:
+        float_abi = "f"
+    elif riscv_abi == EF_RISCV_FLOAT_ABI_DOUBLE:
+        float_abi = "d"
+    elif riscv_abi == EF_RISCV_FLOAT_ABI_QUAD:
+        float_abi = "q"
+
+    return "".join([int_abi, float_abi])
+
 def compute_multilib_category(elf_header):
 	"""
 	Compute a multilib category from an ELF header.
@@ -100,6 +124,8 @@ def compute_multilib_category(elf_header):
 
 		if prefix == "mips":
 			suffix = _compute_suffix_mips(elf_header)
+        elif prefix = "riscv":
+            suffix = _compute_suffix_riscv(elf_header)
 		elif elf_header.ei_class == ELFCLASS64:
 			suffix = "64"
 		elif elf_header.ei_class == ELFCLASS32:
